@@ -14,6 +14,7 @@ rootdir = os.path.dirname(os.getcwd())
 frameDuration = 0.2
 frameShift = 0.2 / 8.0
 
+
 def plot_waveform(waveform, sampling_rate):
     left = 0
     right = frameDuration * sampling_rate

@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+各時間フレームごとに基本周波数を表示する
+ただし、無声区間に対しては基本周波数は表示しない
+TODO: 窓関数
+"""
+
 import sys
 import math
 import numpy as np
@@ -49,4 +55,4 @@ if __name__ == '__main__':
 
     # 各標本の値を-1から1の範囲に変換
     waveform = waveform / 32768.0
-    plot_spectrogram(waveform, sampling_rate)
+    plot_(waveform, sampling_rate)

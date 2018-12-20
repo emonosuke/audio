@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# ./plot_spectrum.py wavfile left[sec] right[sec]
-# left[sec] と right[sec] 間の spectrum を表示
+"""
+./plot_spectrum.py wavfile left[sec] right[sec]
+left[sec] と right[sec] 間の spectrum を表示
+"""
 
 import sys
 import scipy.io.wavfile
@@ -13,6 +15,7 @@ import os.path
 import math
 
 rootdir = os.path.dirname(os.getcwd())
+
 
 def plot_spectrum(w, sampling_rate):
     lenw = len(w)
@@ -46,6 +49,8 @@ if __name__ == '__main__':
     datadir = os.path.join(rootdir, 'data')
     filename = os.path.join(datadir, sys.argv[1])
     sampling_rate, waveform = scipy.io.wavfile.read(filename)
+
+    print('sampling_rate: ', sampling_rate)
 
     left = int(float(sys.argv[2]) * sampling_rate)
     right = int(float(sys.argv[3]) * sampling_rate)

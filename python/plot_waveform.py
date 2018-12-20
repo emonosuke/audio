@@ -7,8 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import os.path
+import soundfile as sf
 
 root_dir = os.path.dirname(os.getcwd())
+
 
 def plot_waveform(waveform, sampling_rate):
     print(waveform)
