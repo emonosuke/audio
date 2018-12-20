@@ -118,12 +118,8 @@ def calc_likelihood(x, mean, std):
     対数尤度を求める
     - \sum_d (log(std_d) + (x_d - mean_d)^2 / (2 * std_d^2))
     """
-    print(x, mean, std)
-
     p = 0
     n = len(x)
-
-    print(n)
 
     for i in range(n):
         p -= math.log(std[i]) + ((x[i] - mean[i]) ** 2) / (2 * (std[i] ** 2))
@@ -140,8 +136,6 @@ def predict(sr, w, means, stds):
 
     while right < len(w):
         cep = get_cepstrum(sr, w[int(left):int(right)])
-
-        # print("cepstrum: ", cep)
 
         # 'a' の対数尤度を求める
         maxl = calc_likelihood(cep, means[0], stds[0])

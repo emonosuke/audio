@@ -20,6 +20,10 @@ rootdir = os.path.dirname(os.getcwd())
 def plot_spectrum(w, sampling_rate):
     lenw = len(w)
 
+    # 窓関数
+    hanningwindow = np.hanning(lenw)
+    w = hanningwindow * w
+
     # fftSize = 2^p >= lenw を満たす fftSize を求める
     fftSize = 1 << math.ceil(math.log2(lenw))
     fftSize2 = (fftSize >> 1) + 1

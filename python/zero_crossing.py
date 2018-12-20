@@ -4,7 +4,6 @@
 """
 各時間フレームごとに基本周波数を表示する
 ただし、無声区間に対しては基本周波数は表示しない
-TODO: 窓関数
 """
 
 import sys
@@ -15,44 +14,73 @@ import scipy.io.wavfile
 import matplotlib.pyplot as plt
 import pylab
 import os
+from autocorrelation import get_frequency
 
 rootdir = os.path.dirname(os.getcwd())
 
+DURATION = 0.2  # s
+SHIFT = 0.1  # s
 
-def plot_spectrogram(waveform, sampling_rate):
-    window_duration = 40.0 * 1.0e-3  # 窓関数の長さ(単位は秒)
-    window_shift = 5.0 * 1.0e-3  # 窓関数をスライドさせる長さ(単位は秒)
-    window_size = int(window_duration * sampling_rate)  # 窓関数のサンプル数
-    # 隣接する窓関数の重なり
-    window_overlap = int((window_duration - window_shift) * sampling_rate)
-    window = scipy.hanning(window_size)  # 窓関数本体
-    # TODO: vmin, vmax を適切に調整する
-    sp, freqs, times, ax = plt.specgram(
-        waveform,
-        NFFT=window_size,
-        Fs=sampling_rate,
-        window=window,
-        noverlap=window_overlap,
-        cmap='hot',
-        vmin=None,
-        vmax=None
-    )
-    plt.title('Spectrogram')
-    plt.xlabel('Time [sec]')
-    plt.ylabel('Frequency [Hz]')
-    plt.xlim([0, times[-1]])
-    plt.ylim([0, freqs[-1]])
-    plt.show()
+
+def get_zero_crossing(w):
+    lenw = len(w)
+
+    zero_crossed = 0
+
+    for i in range(lenw - 1):
+        if w[i] * w[i + 1] <= 0:
+            zero_crossed += 1
+
+    return zero_crossed * 5
+
+
+def plot_voiced(waveform, sampling_rate):
+    """
+    基本周波数とゼロ交差数を比較して、有声音か無声音かを判定する
+    さらに、有声音であれば基本周波数を spectrogram 上に重ねて表示する
+    """
+    left = 0
+    right = DURATION * sampling_rate
+
+    freqs = []
+    times = []
+
+    # 各フレームごと
+    while right < len(waveform):
+        framed_w = waveform[int(left):int(right)]
+
+        # 窓関数
+        hanningwindow = np.hanning(len(framed_w))
+        framed_w = hanningwindow * framed_w
+
+        # 基本周波数を求める
+        fq = get_frequency(framed_w, sampling_rate)
+
+        # ゼロ交差数を求める
+        zc = get_zero_crossing(framed_w)
+
+        print('{:.1f} {:.1f} Frequency[Hz]: {:.2f} Zero Crossing[Hz]: {:.2f}'.format(
+            left / sampling_rate, right / sampling_rate, fq, zc))
+        
+        if zc <= fq * 3:
+            freqs.append(fq)
+        else:
+            freqs.append(None)
+        
+        mid = (left + right) / 2
+        times.append(mid / sampling_rate)
+
+        left += SHIFT * sampling_rate
+        right += SHIFT * sampling_rate
+
+    print(freqs)
+
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        print('no input files')
-        sys.exit(1)
-
     datadir = os.path.join(rootdir, 'data')
     filename = os.path.join(datadir, sys.argv[1])
     sampling_rate, waveform = scipy.io.wavfile.read(filename)
 
     # 各標本の値を-1から1の範囲に変換
     waveform = waveform / 32768.0
-    plot_(waveform, sampling_rate)
+    plot_voiced(waveform, sampling_rate)

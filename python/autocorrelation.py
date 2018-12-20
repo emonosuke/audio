@@ -27,8 +27,13 @@ def autocorr(x, t):
     return S
 
 
-def get_frequency(w):
+def get_frequency(w, sr):
+    """
+    与えられた波形範囲の基本周波数を求める
+    TODO: 高速化したい
+    """
     lenw = len(w)
+
     maxac = -10000.0
     # 対応する基本周波数
     ff = 0
@@ -44,7 +49,7 @@ def get_frequency(w):
                 flagFirst = False
         else:
             if maxac < a:
-                ff = 1.0 / (i / sampling_rate)
+                ff = 1.0 / (i / sr)
                 maxac = a
         pa = a
     
@@ -58,17 +63,22 @@ def plot_frequencies(waveform, sampling_rate):
     ffs = []
     times = []
     while right < len(waveform):
-        # print(left, right)
-        ff = get_frequency(waveform[int(left):int(right)])
+        framed_w = waveform[int(left):int(right)]
+
+        # 窓関数
+        hanningwindow = np.hanning(len(framed_w))
+        framed_w = hanningwindow * framed_w
+
+        ff = get_frequency(framed_w, sampling_rate)
         ffs.append(ff)
         
         mid = (left + right) / 2
         times.append(mid / sampling_rate)
 
+        print('{:.2f} {:.2f} Frequency[Hz]: {:.2f}'.format(left / sampling_rate, right / sampling_rate, ff))
+
         left += frameShift * sampling_rate
         right += frameShift * sampling_rate
-
-        print('{:.2f} {:.2f} Frequency[Hz]: {:.2f}'.format(left / sampling_rate, right / sampling_rate, ff))
 
     plt.plot(times, ffs)
     plt.title('Fundamental Frequency')
