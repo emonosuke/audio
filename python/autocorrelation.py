@@ -21,37 +21,37 @@ frameShift = 0.1
 
 def autocorr(x, t):
     N = len(x)
-    S = 0
-    for i in range(N - t):
-        S += x[i] * x[i + t]
-    return S
+
+    return np.dot(np.array(x[:N-t]), np.array(x[t:N]))
 
 
 def get_frequency(w, sr):
     """
     与えられた波形範囲の基本周波数を求める
-    TODO: 高速化したい
     """
     lenw = len(w)
 
-    maxac = -10000.0
     # 対応する基本周波数
     ff = 0
 
-    flagFirst = True  # はじめのピークにいる場合True
+    # 2番目に大きいピークが基本周波数に対応する
+    firstpeak = True  # はじめのピークにいる場合True
 
-    pa = autocorr(w, 0)
-    # print(pa) # t = 0 で自己相関は最大
+    # 直前の自己相関の値
+    prev = autocorr(w, 0)
+
     for i in range(1, lenw // 2):
-        a = autocorr(w, i)
-        if flagFirst:
-            if pa < a: 
-                flagFirst = False
+        corr = autocorr(w, i)
+        if firstpeak:
+            # はじめのピークを抜ける
+            if prev <= corr:
+                firstpeak = False
+                maxcorr = corr
         else:
-            if maxac < a:
-                ff = 1.0 / (i / sr)
-                maxac = a
-        pa = a
+            if maxcorr <= corr:
+                ff = 1.0 / ((i - 1) / sr)
+                maxcorr = corr
+        prev = corr
     
     return ff
 

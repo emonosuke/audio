@@ -31,7 +31,7 @@ def get_zero_crossing(w):
         if w[i] * w[i + 1] <= 0:
             zero_crossed += 1
 
-    return zero_crossed * 5
+    return zero_crossed / DURATION
 
 
 def plot_voiced(waveform, sampling_rate):
@@ -41,9 +41,9 @@ def plot_voiced(waveform, sampling_rate):
     """
     left = 0
     right = DURATION * sampling_rate
+    width = int(0.1 * sampling_rate)
 
-    freqs = []
-    times = []
+    fqs = []
 
     # 各フレームごと
     while right < len(waveform):
@@ -61,19 +61,45 @@ def plot_voiced(waveform, sampling_rate):
 
         print('{:.1f} {:.1f} Frequency[Hz]: {:.2f} Zero Crossing[Hz]: {:.2f}'.format(
             left / sampling_rate, right / sampling_rate, fq, zc))
-        
-        if zc <= fq * 3:
-            freqs.append(fq)
+
+        # 無声音あるいは周波数が極端に大きい場合には基本周波数は0とする
+        if fq <= 500 and zc <= fq * 10:
+            fqs = np.append(fqs, fq)
         else:
-            freqs.append(None)
-        
-        mid = (left + right) / 2
-        times.append(mid / sampling_rate)
+            fqs = np.append(fqs, 0)
 
         left += SHIFT * sampling_rate
         right += SHIFT * sampling_rate
 
-    print(freqs)
+    # spectrogram の表示
+    window_duration = 0.2
+    window_shift = 0.1
+    window_size = int(window_duration * sampling_rate)
+    window_overlap = int((window_duration - window_shift) * sampling_rate)
+    window = scipy.hanning(window_size)
+    
+    plt.title('Spectrogram & Frequency')
+
+    sp, _, times, ax = plt.specgram(
+        waveform,
+        NFFT=window_size,
+        Fs=sampling_rate,
+        window=window,
+        noverlap=window_overlap,
+        cmap='hot',
+        vmin=None,
+        vmax=None
+    )
+
+    if len(times) > len(fqs):
+        fqs = np.append(fqs, 0)
+    
+    plt.plot(times, fqs, color='red')
+    plt.xlabel('Time [sec]')
+    plt.ylabel('Frequency [Hz]')
+    plt.ylim([0, 1000])
+
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -83,4 +109,5 @@ if __name__ == '__main__':
 
     # 各標本の値を-1から1の範囲に変換
     waveform = waveform / 32768.0
+
     plot_voiced(waveform, sampling_rate)
