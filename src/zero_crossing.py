@@ -41,7 +41,6 @@ def plot_voiced(waveform, sampling_rate):
     """
     left = 0
     right = DURATION * sampling_rate
-    width = int(0.1 * sampling_rate)
 
     fqs = []
 
@@ -90,6 +89,8 @@ def plot_voiced(waveform, sampling_rate):
         vmin=None,
         vmax=None
     )
+
+    plt.colorbar()
 
     if len(times) > len(fqs):
         fqs = np.append(fqs, 0)
