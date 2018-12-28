@@ -9,6 +9,8 @@ from matplotlib.backends.backend_tkagg import (
 from matplotlib.figure import Figure
 import numpy as np
 import scipy.io.wavfile
+from helpers import FRAME_DURATION, FRAME_SHIFT, LIM_FREQ
+from helpers import predict_fundamentals
 
 
 # 参照ボタンのイベント
@@ -30,8 +32,36 @@ def openbutton_clicked(sp, canvas):
         times = np.arange(len(waveform)) / sampling_rate
         waveform = waveform / 32768.0
 
+        ffs = predict_fundamentals(waveform, sampling_rate)
+
         sp.cla()
-        sp.plot(times, waveform, linewidth=0.5, color='darkorange')
+
+        # sp.plot(times, waveform, linewidth=0.5, color='darkorange')
+
+        window_size = int(FRAME_DURATION * sampling_rate)
+        window_overlap = int((FRAME_DURATION - FRAME_SHIFT) * sampling_rate)
+        window = scipy.hanning(window_size)
+
+        spectrum, freqs, taxis, im = sp.specgram(
+            waveform,
+            NFFT=window_size,
+            Fs=sampling_rate,
+            window=window,
+            noverlap=window_overlap,
+            cmap='hot',
+            vmin=None,
+            vmax=None
+        )
+
+        # TODO: colorbar
+
+        sp.plot(taxis, ffs, color='red', marker='o')
+
+        sp.set_title('Spectrogram')
+
+        sp.set_ylim([0, LIM_FREQ])
+        sp.set_xlabel('Time [sec]')
+        sp.set_ylabel('Frequency [Hz]')
 
         canvas.draw()
     
@@ -41,7 +71,7 @@ def openbutton_clicked(sp, canvas):
 if __name__ == '__main__':
     # rootの作成
     root = tkinter.Tk()
-    root.title('Audio Analysis GUI')
+    root.title('GUI')
     # root.resizable(False, False)
 
     frame1 = ttk.Frame(root, padding=10)

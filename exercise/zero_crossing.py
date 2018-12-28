@@ -12,7 +12,6 @@ import numpy as np
 import scipy
 import scipy.io.wavfile
 import matplotlib.pyplot as plt
-import pylab
 import os
 from autocorrelation import get_frequency
 
@@ -65,16 +64,13 @@ def plot_voiced(waveform, sampling_rate):
         if fq <= 500 and zc <= fq * 10:
             fqs = np.append(fqs, fq)
         else:
-            fqs = np.append(fqs, 0)
+            fqs = np.append(fqs, math.nan)
 
         left += SHIFT * sampling_rate
         right += SHIFT * sampling_rate
 
-    # spectrogram の表示
-    window_duration = 0.2
-    window_shift = 0.1
-    window_size = int(window_duration * sampling_rate)
-    window_overlap = int((window_duration - window_shift) * sampling_rate)
+    window_size = int(DURATION * sampling_rate)
+    window_overlap = int((DURATION - SHIFT) * sampling_rate)
     window = scipy.hanning(window_size)
     
     plt.title('Spectrogram & Frequency')
