@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """
-./recognition.py wavfile
 a.wav, i.wav, u.wav, e.wav, o.wav を訓練データとして、
 識別器を構成してテストデータである wavfile の認識結果を表示する
 """
