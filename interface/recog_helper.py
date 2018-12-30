@@ -5,6 +5,9 @@ LIM_CEPSTRUM = 13
 
 
 def get_spectrum(framed_w, sampling_rate):
+    """
+    Get spectrum of framed_w, using FFT
+    """
     # fftSize = 2^p >= lenw
     fftSize = 1 << math.ceil(math.log2(len(framed_w)))
     fftSize2 = fftSize >> 1
@@ -19,6 +22,9 @@ def get_spectrum(framed_w, sampling_rate):
 
 
 def get_cepstrum(waveform, sampling_rate, left, right):
+    """
+    Get cepstrum of a part of the waveform, using FFT of spectrum
+    """
     framed_w = waveform[int(left):int(right)]
 
     # apply window function here
@@ -34,6 +40,10 @@ def get_cepstrum(waveform, sampling_rate, left, right):
 
 def calc_likelihood(x, mean, std):
     """
+    Likelihood is caluculated as follows
+    
     - \sum_d (log(std_d) + (x_d - mean_d)^2 / (2 * std_d^2))
+
+    (d = 0, 1, ..., LIM_CEPSTRUM(=13) - 1)
     """
     return (-1) * np.sum(np.log(std) + ((x - mean) ** 2) / (2 * (std ** 2)))

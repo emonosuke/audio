@@ -1,9 +1,9 @@
+from specgram import FRAME_DURATION, FRAME_SHIFT
+from recog_helper import get_cepstrum, calc_likelihood
 import os
 import math
 import numpy as np
 import scipy.io.wavfile
-from specgram import FRAME_DURATION, FRAME_SHIFT
-from recog_helper import get_cepstrum, calc_likelihood
 
 ROOTDIR = os.getcwd()
 DATADIR = os.path.join(ROOTDIR, 'train')
@@ -19,7 +19,16 @@ VOWEL = {0: 'a', 1: 'i', 2: 'u', 3: 'e', 4: 'o'}
 
 class VowelClassifier(object):
     """
-    description of VowelClassifier
+    Vowel Recognition
+
+    Attributes
+    ----------
+    means: array
+        Shape=(5, LIM_CEPSTRUM=13)
+        means[i][j] is i th vowel's j th cepstrum averaged between frames
+    stds: array
+        Shape=(5, LIM_CEPSTRUM=13)
+        means[i][j] is i th vowel's j th cepstrum standard deviation
     """
     def __init__(self):
         """
@@ -38,7 +47,7 @@ class VowelClassifier(object):
         ew = ew / 32768.0
         ow = ow / 32768.0
 
-        # a, i, u, e, o に対応するケプストラム
+        # cepstrum of 'a', 'i', 'u', 'e', 'o'
         cep_a, cep_i, cep_u, cep_e, cep_o = [], [], [], [], []
 
         left = 0
@@ -58,6 +67,22 @@ class VowelClassifier(object):
         self.__stds = np.std([cep_a, cep_i, cep_u, cep_e, cep_o], axis=1)
 
     def predict(self, waveform, sampling_rate):
+        """
+        Predict each frame's vowel by maximum likelihood estimation
+
+        Parameters
+        ----------
+        waveform: array
+        sampling_rate: int
+
+        Returns
+        ----------
+        taxis: array
+            Time axis(x)
+        recogs: array
+            Recognition result('a' or 'i' or 'u' or 'e' or 'o')
+            This length must be equal to taxis
+        """
         taxis = []
         recogs = []
 
@@ -77,9 +102,5 @@ class VowelClassifier(object):
 
             left += FRAME_SHIFT * sampling_rate
             right += FRAME_SHIFT * sampling_rate
-
-        # FOR DEBUG
-        print(taxis)
-        print(recogs)
 
         return taxis, recogs

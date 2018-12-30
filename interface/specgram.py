@@ -8,6 +8,9 @@ ZERO_CROSSING_RATE = 10
 
 
 def autocorr(x, t):
+    """
+    Autocorrelation between x and t-shifted x
+    """
     N = len(x)
 
     return np.dot(x[:N-t], x[t:N])
@@ -40,6 +43,9 @@ def fundamental_by_frame(framed_w, sampling_rate):
 
 
 def zero_crossing(framed_w):
+    """
+    Count zero crossing of framed_w
+    """
     zero_crossed = 0
 
     for i in range(len(framed_w) - 1):
@@ -51,7 +57,7 @@ def zero_crossing(framed_w):
 
 def predict_fundamentals(waveform, sampling_rate):
     """
-    Split waveform into frames, 
+    Split waveform into frames
     """
     left = 0
     right = FRAME_DURATION * sampling_rate
@@ -69,6 +75,8 @@ def predict_fundamentals(waveform, sampling_rate):
 
         zc = zero_crossing(framed_w)
 
+        # if zero crossing is too many in comparison with fundamental frequency,
+        # this is unvoiced sound and don't show frequency on graph
         if fbf <= LIM_FREQ and zc <= fbf * ZERO_CROSSING_RATE:
             fundamentals = np.append(fundamentals, fbf)
         else:
