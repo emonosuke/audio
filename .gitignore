@@ -1,7 +1,7 @@
 material/
 reports/
 .DS_Store
-data/
+datas/
 lib/
 __pycache__/
 java/

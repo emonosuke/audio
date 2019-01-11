@@ -25,9 +25,9 @@ class Player():
     """
     def __init__(self, 
                  filename,
-                 buf_size=BUF_SIZE, 
-                 frame_duration=FRAME_DURATION, 
-                 frame_rate=FRAME_RATE, 
+                 buf_size=BUF_SIZE,
+                 frame_duration=FRAME_DURATION,
+                 frame_rate=FRAME_RATE,
                  verbose=False):
         self.wave_read = wave.open(filename, 'rb')
         self.buf_size = buf_size
@@ -70,14 +70,14 @@ class Player():
             while frame_remain > self.buf_size:
                 d = self.wave_read.readframes(self.buf_size)
                 self.out.write(d)
-                w = np.fromstring(d, dtype=int) * (2.0 ** 15)
+                w = np.fromstring(d, dtype=np.int16) * (2.0 ** 15)
                 frame[-frame_remain:-frame_remain + self.buf_size] = w
                 frame_remain -= self.buf_size
             
             if frame_remain > 0:
                 d = self.wave_read.readframes(self.buf_size)
                 self.out.write(d)
-                w = np.fromstring(d, dtype=int) * (2.0 ** 15)
+                w = np.fromstring(d, dtype=np.int16) * (2.0 ** 15)
                 frame[-frame_remain:] = self.buf[:frame_remain]
                 self.buf_pos -= frame_remain
             
