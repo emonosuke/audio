@@ -99,8 +99,8 @@ if __name__ == '__main__':
 
     s = tkinter.StringVar()
     s.set('ファイル: ')
-    label1 = ttk.Label(frame_entry, textvariable=s)
-    label1.grid(row=0, column=0)
+    label = ttk.Label(frame_entry, textvariable=s)
+    label.grid(row=0, column=0)
 
     file_target = tkinter.StringVar()
     file_target_entry = ttk.Entry(frame_entry, textvariable=file_target, width=50)
