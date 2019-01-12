@@ -8,9 +8,9 @@ from threading import Thread
 from queue import Queue
 
 RECORDER_NCHANNELS = 1
-RECORDER_SAMPLING_RATE = 44100
+RECORDER_SAMPLING_RATE = 16000
 RECORDER_DURATION = 10.0
-RECORDER_FILENAME = "out.wav"
+RECORDER_FILENAME = "output.wav"
 RECORDER_SAMPLE_WIDTH = 2  # bytes
 RECORDER_BUF_SIZE = 4000
 
@@ -114,6 +114,7 @@ def main():
                       help='verbose output')
     (options, args) = parser.parse_args()
 
+    """
     r = Recorder(
         duration=RECORDER_DURATION,
         sampling_rate=RECORDER_SAMPLING_RATE,
@@ -122,6 +123,9 @@ def main():
         frame_duration=FRAME_DURATION,
         verbose=options.verbose
     )
+    """
+    r = Recorder()
+
     r.start()
 
 if __name__ == '__main__':

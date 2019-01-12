@@ -63,23 +63,31 @@ def callback(outdata, frames, time, status):
         outdata[:] = data
 
 
-import sounddevice as sd
-import soundfile as sf
+try:
+    import sounddevice as sd
+    import soundfile as sf
 
-with sf.SoundFile(args.filename) as f:
-    for _ in range(args.buffersize):
-        data = f.buffer_read(args.blocksize, dtype='float32')
-        if not data:
-            break
-        q.put_nowait(data)  # Pre-fill queue
-
-    stream = sd.RawOutputStream(
-        samplerate=f.samplerate, blocksize=args.blocksize,
-        device=None, channels=f.channels, dtype='float32',
-        callback=callback, finished_callback=event.set)
-    with stream:
-        timeout = args.blocksize * args.buffersize / f.samplerate
-        while data:
+    with sf.SoundFile(args.filename) as f:
+        for _ in range(args.buffersize):
             data = f.buffer_read(args.blocksize, dtype='float32')
-            q.put(data, timeout=timeout)
-        event.wait()  # Wait until playback is finished
+            if not data:
+                break
+            q.put_nowait(data)  # Pre-fill queue
+
+        stream = sd.RawOutputStream(
+            samplerate=f.samplerate, blocksize=args.blocksize,
+            channels=f.channels, dtype='float32',
+            callback=callback, finished_callback=event.set)
+        with stream:
+            timeout = args.blocksize * args.buffersize / f.samplerate
+            while data:
+                data = f.buffer_read(args.blocksize, dtype='float32')
+                q.put(data, timeout=timeout)
+            event.wait()  # Wait until playback is finished
+except KeyboardInterrupt:
+    parser.exit('\nInterrupted by user')
+except queue.Full:
+    # A timeout occured, i.e. there was an error in the callback
+    parser.exit(1)
+except Exception as e:
+    parser.exit(type(e).__name__ + ': ' + str(e))

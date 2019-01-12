@@ -52,8 +52,6 @@ if __name__ == '__main__':
     length = int(window * samplerate)   # グラフに表示するサンプル数
     plotdata = np.zeros((length, 1))
 
-    print(plotdata.shape)
-
     fig, ax = plt.subplots()
     lines = ax.plot(plotdata)          # グラフのリアルタイム更新の最初はプロットから
     ax.axis((0, len(plotdata), -1, 1))

@@ -100,6 +100,7 @@ class Player():
                 self.frame = frame0
             
             wframe = self.frame * self.window
+            print(wframe)
             self.queue.put(wframe)
             nsamples_remain -= self.frame_shift
     
