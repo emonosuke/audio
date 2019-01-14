@@ -7,9 +7,6 @@ import sounddevice as sd
 
 
 def audio_callback(indata, outdata, frames, time, status):
-    """
-    サンプリングごとに呼ばれるコールバック関数
-    """
     if status:
         print(status, file=sys.stderr)
     outdata[:] = indata
@@ -20,9 +17,6 @@ def audio_callback(indata, outdata, frames, time, status):
 
 
 def update_plot(frame):
-    """
-    matplotlibのアニメーション更新毎に呼ばれるグラフ更新関数
-    """
     global plotdata
     while True:
         try:
