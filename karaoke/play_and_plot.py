@@ -40,7 +40,7 @@ def callback(outdata, frames, time, status):
 
     global plotdata
     # print(data.shape)
-    plotdata = np.fromstring(data, dtype=np.int16) * (2.0 ** 15)
+    plotdata = np.fromstring(data, dtype=np.short) * (2.0 ** 15)
 
     if len(data) < len(outdata):
         outdata[:len(data)] = data

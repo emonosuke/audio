@@ -17,6 +17,9 @@ except ImportError:
     import Queue as queue  # Python 2.x
 import sys
 import threading
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import numpy as np
 
 def int_or_str(text):
     """Helper function for argument parsing."""
@@ -29,10 +32,10 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('filename', help='audio file to be played back')
 parser.add_argument('-d', '--device', type=int_or_str,
                     help='output device (numeric ID or substring)')
-parser.add_argument('-b', '--blocksize', type=int, default=2048,
+parser.add_argument('-b', '--blocksize', type=int, default=2048*5,
                     help='block size (default: %(default)s)')
 parser.add_argument(
-    '-q', '--buffersize', type=int, default=20,
+    '-q', '--buffersize', type=int, default=20*5,
     help='number of blocks used for buffering (default: %(default)s)')
 args = parser.parse_args()
 if args.blocksize == 0:
@@ -50,18 +53,43 @@ def callback(outdata, frames, time, status):
         print('Output underflow: increase blocksize?', file=sys.stderr)
         raise sd.CallbackAbort
     assert not status
-    try:
-        data = q.get_nowait()
-    except queue.Empty:
-        print('Buffer is empty: increase buffersize?', file=sys.stderr)
-        raise sd.CallbackAbort
+    data = q.get_nowait()
+    
+    global plotdata
+    plotdata = np.frombuffer(data, dtype=np.int16)
+    plotdata = plotdata / (2.0 ** 15)
+    print(plotdata.shape)
+    # print(plotdata[:100])
+
     if len(data) < len(outdata):
+        # called last
         outdata[:len(data)] = data
         outdata[len(data):] = b'\x00' * (len(outdata) - len(data))
         raise sd.CallbackStop
     else:
         outdata[:] = data
 
+def update_plot(frame):
+    """
+    matplotlibのアニメーション更新毎に呼ばれるグラフ更新関数
+    """
+    global plotdata
+    
+    lines[0].set_ydata(plotdata[-1000:])
+    
+    return lines
+
+
+filename = sys.argv[1]
+
+length = 1000  # グラフに表示するサンプル数
+plotdata = np.zeros((length, 1))
+
+fig, ax = plt.subplots()
+lines = ax.plot(plotdata, linewidth=0.5, color='darkorange')  # グラフのリアルタイム更新の最初はプロットから
+ax.axis((0, len(plotdata), -1, 1))
+
+ani = FuncAnimation(fig, update_plot, interval=100, blit=True)
 
 try:
     import sounddevice as sd
@@ -79,10 +107,12 @@ try:
             channels=f.channels, dtype='float32',
             callback=callback, finished_callback=event.set)
         with stream:
+            plt.show()
             timeout = args.blocksize * args.buffersize / f.samplerate
             while data:
                 data = f.buffer_read(args.blocksize, dtype='float32')
                 q.put(data, timeout=timeout)
+            # called last
             event.wait()  # Wait until playback is finished
 except KeyboardInterrupt:
     parser.exit('\nInterrupted by user')
