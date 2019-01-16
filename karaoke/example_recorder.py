@@ -4,6 +4,7 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 import numpy as np
 import sounddevice as sd
+import queue
 
 
 def audio_callback(indata, outdata, frames, time, status):
@@ -25,6 +26,9 @@ def update_plot(frame):
             break
 
         shift = len(data)
+
+        print(shift)
+
         plotdata = np.roll(plotdata, -shift, axis=0)
         plotdata[-shift:, :] = data
 
@@ -38,7 +42,7 @@ def update_plot(frame):
 if __name__ == '__main__':
     samplerate = 16000
     window = 0.2
-    interval = 10
+    interval = 100
     channels = 1
 
     q = queue.Queue()
