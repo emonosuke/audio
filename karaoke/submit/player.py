@@ -1,29 +1,24 @@
 import sys
 import math
 import numpy as np
-import scipy
-import scipy.io.wavfile
-import matplotlib.pyplot as plt
-import os
-from matplotlib.animation import FuncAnimation
 import time
 import sounddevice as sd
 import soundfile as sf
 import subprocess
+from multiprocessing import Process
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
-FRAME_DURATION = 0.2
-FRAME_SHIFT = 0.1
-now = 0
+PLAYER_FRAME_DURATION = 0.1
+PLAYER_FRAME_SHIFT = 0.05
+PLAYER_N_PLOTS = 20
 
 
-def calc_specgram(waveform, sampling_rate):
-    """
-    Set specgrams
-    """
-    global specgram
+def calc_specgrams(waveform, samplerate):
+    specgrams = []
 
     left = 0
-    right = FRAME_DURATION * sampling_rate
+    right = PLAYER_FRAME_DURATION * samplerate
 
     while right < len(waveform):
         wframe = waveform[int(left):int(right)]
@@ -31,57 +26,64 @@ def calc_specgram(waveform, sampling_rate):
         hanningwindow = np.hanning(len(wframe))
         wframe = hanningwindow * wframe
 
-        specgram.append(np.log(np.abs(np.fft.rfft(wframe))))
+        specgrams.append(np.log(np.abs(np.fft.rfft(wframe))))
 
-        left += FRAME_SHIFT * sampling_rate
-        right += FRAME_SHIFT * sampling_rate
-
-
-def updatefig(*args):
-    global specgram
-    global target_spec
-    global start
-    global now
-
-    elapsed = time.time() - start
-    if elapsed >= (now + 1) * FRAME_SHIFT:
-        now += 1
-        if now >= len(specgram):
-            print("end of music")
-            sys.exit(0)
-
-    target_spec[0] = specgram[now]
-    target_spec = np.roll(target_spec, -1, axis=0)
-
-    print(target_spec)
-
-    im.set_array(np.transpose(target_spec))
-
-    return im,
-
-
-if __name__ == '__main__':
-    sampling_rate, waveform = scipy.io.wavfile.read(sys.argv[1])
-    waveform = waveform / 32768.0
-
-    specgram = []
-
-    calc_specgram(waveform, sampling_rate)
-
-    nyquist = sampling_rate / 2
-
-    # initialize spectrogram
-    fig, ax = plt.subplots()
-
-    lenfreq = (int(sampling_rate * FRAME_DURATION) >> 1) + 1
-    target_spec = np.zeros([20, lenfreq])
+        left += PLAYER_FRAME_SHIFT * samplerate
+        right += PLAYER_FRAME_SHIFT * samplerate
     
-    extent = [0.0, 1.0, 0.0, nyquist]
+    return specgrams
 
-    im = plt.imshow(np.transpose(specgram), cmap='hot', origin='lower', aspect='auto', extent=extent)
 
-    start = time.time()
+class Player(Process):
+    def __init__(self, filename):
+        super(Player, self).__init__()
+        
+        waveform, samplerate = sf.read(sys.argv[1], dtype='float32')
+        self.filename = filename
+        self.waveform = waveform
+        self.samplerate = samplerate
+        self.specgrams = calc_specgrams(waveform, samplerate)
+        
+        # For colormap
+        self.specmax = np.max(self.specgrams)
+        self.specmin = np.min(self.specgrams)
 
-    ani = FuncAnimation(fig, updatefig, interval=100, blit=True)
+        self.lenfreq = ((int(self.samplerate * PLAYER_FRAME_DURATION) >> 1) + 1)
+        self.plotdata = np.zeros((PLAYER_N_PLOTS, self.lenfreq))
+        self.readed = 0
     
-    plt.show()
+    def update_plot(self):
+        elapsed = time.time() - self.started
+        if elapsed >= (self.readed + 1) * PLAYER_FRAME_SHIFT:
+            self.readed += 1
+            self.plotdata[0] = self.specgrams[self.readed]
+            self.plotdata = np.roll(self.plotdata, -1, axis=0)
+
+        self.im.set_array(np.transpose(self.plotdata))
+
+        return self.im,
+
+    def run(self):
+        self.specgrams = calc_specgrams(self.waveform, self.samplerate)
+
+        # initialize spectrogram
+        fig, ax = plt.subplots()
+        
+        extent = [0.0, 1.0, 0.0, self.samplerate / 2]
+
+        self.im = plt.imshow(np.transpose(self.plotdata), cmap='hot', origin='lower', aspect='auto', extent=extent)
+        
+        # playback start
+        self.started = time.time()
+
+        def playback(filename):
+            subprocess.call(['play', '-q', filename])
+
+        pb = Process(target=playback, args=(self.filename,))
+        pb.start()
+
+        # TODO: when to proc.join()
+
+        ani = FuncAnimation(fig, self.update_plot, interval=100, blit=True)
+    
+        plt.show()
