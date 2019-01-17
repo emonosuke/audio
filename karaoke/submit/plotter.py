@@ -8,7 +8,9 @@ from helpers import get_frequency
 import time
 from player import Player
 import argparse
-from threading import Thread
+import multiprocessing
+from player import player_main
+
 
 RECORDER_SAMPLERATE = 16000
 RECORDER_N_CHANNELS = 1
@@ -24,8 +26,6 @@ def callback(indata, outdata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
     outdata[:] = indata
-
-    global q
 
     q.put(indata)
 
@@ -43,7 +43,7 @@ def update_plot(frame):
         shift = len(data)
 
         if len(data) >= RECORDER_FRAME_SIZE:
-            framedata = data[-RECORDERFRAME_SIZE:].flatten()
+            framedata = data[-RECORDER_FRAME_SIZE:].flatten()
         else:
             framedata[:shift] = data.flatten()
             framedata = np.roll(framedata, -shift, axis=0)
@@ -63,6 +63,17 @@ def update_plot(frame):
     return lines
 
 
+def update_player_plot(frame):
+    while 1:
+        try:
+            top = player_queue.get_nowait()
+        except:
+            # expect empty queue
+            break
+    
+    print("player caller: ", top)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', help='wav file to play')
@@ -75,20 +86,23 @@ if __name__ == '__main__':
     framedata = np.zeros(RECORDER_FRAME_SIZE)
     plotdata = np.zeros(RECORDER_N_FRAMES)
 
-    fig, ax = plt.subplots()
+    fig1, ax1 = plt.subplots()
 
+    # fig2, ax2 = plt.subplots()
+    
     # TODO: 補助線入れたい
-    lines = ax.plot(plotdata)
-    ax.axis((0, RECORDER_N_FRAMES, 0, RECORDER_MAX_FREQ / 2))
+    lines = ax1.plot(plotdata)
+    ax1.axis((0, RECORDER_N_FRAMES, 0, RECORDER_MAX_FREQ / 2))
 
     stream = sd.Stream(channels=RECORDER_N_CHANNELS, samplerate=RECORDER_SAMPLERATE, callback=callback)
-    ani = FuncAnimation(fig, update_plot, interval=100, blit=True)
+    ani1 = FuncAnimation(fig1, update_plot, interval=100, blit=True)
+    # ani2 = FuncAnimation(fig2, update_player_plot, interval=100, blit=True)
 
-    pl = Player(filename=args.filename)
+    player_queue = multiprocessing.Queue()
 
-    th = Thread(target=pl)
-    th.daemon = True
-    th.start()
+    p = multiprocessing.Process(target=player_main, args=(args.filename, player_queue))
+
+    p.start()
 
     with stream:
         plt.show()

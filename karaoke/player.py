@@ -58,6 +58,9 @@ class Player():
 
         proc = Process(target=playback, args=(self.filename,))
         proc.start()
+
+        # その後、一定時間ごとに plotdata 更新
+
     
     def update(self):
         if self.readed >= len(self.specgrams):

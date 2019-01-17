@@ -6,12 +6,14 @@ import sounddevice as sd
 import soundfile as sf
 import subprocess
 from multiprocessing import Process
+from threading import Thread
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-PLAYER_FRAME_DURATION = 0.1
-PLAYER_FRAME_SHIFT = 0.05
+PLAYER_FRAME_DURATION = 0.2
+PLAYER_FRAME_SHIFT = 0.1
 PLAYER_N_PLOTS = 20
+PLAYER_UPDATE_INTERVAL = 0.05
 
 
 def calc_specgrams(waveform, samplerate):
@@ -34,8 +36,8 @@ def calc_specgrams(waveform, samplerate):
     return specgrams
 
 
-class Player(Process):
-    def __init__(self, filename):
+class Player():
+    def __init__(self, filename, q):
         super(Player, self).__init__()
         
         waveform, samplerate = sf.read(sys.argv[1], dtype='float32')
@@ -51,39 +53,40 @@ class Player(Process):
         self.lenfreq = ((int(self.samplerate * PLAYER_FRAME_DURATION) >> 1) + 1)
         self.plotdata = np.zeros((PLAYER_N_PLOTS, self.lenfreq))
         self.readed = 0
-    
-    def update_plot(self):
-        elapsed = time.time() - self.started
-        if elapsed >= (self.readed + 1) * PLAYER_FRAME_SHIFT:
-            self.readed += 1
-            self.plotdata[0] = self.specgrams[self.readed]
-            self.plotdata = np.roll(self.plotdata, -1, axis=0)
 
-        self.im.set_array(np.transpose(self.plotdata))
+        q.put(0)
 
-        return self.im,
-
-    def run(self):
+    def play(self, q):
         self.specgrams = calc_specgrams(self.waveform, self.samplerate)
-
-        # initialize spectrogram
-        fig, ax = plt.subplots()
-        
-        extent = [0.0, 1.0, 0.0, self.samplerate / 2]
-
-        self.im = plt.imshow(np.transpose(self.plotdata), cmap='hot', origin='lower', aspect='auto', extent=extent)
         
         # playback start
         self.started = time.time()
 
         def playback(filename):
+            # TODO: do not use dependency(sox)
             subprocess.call(['play', '-q', filename])
 
         pb = Process(target=playback, args=(self.filename,))
         pb.start()
+        
+        while 1:
+            time.sleep(PLAYER_UPDATE_INTERVAL)
 
-        # TODO: when to proc.join()
+            # update freq
+            elapsed = time.time() - self.started
 
-        ani = FuncAnimation(fig, self.update_plot, interval=100, blit=True)
-    
-        plt.show()
+            if elapsed >= (self.readed + 1) * PLAYER_FRAME_SHIFT:
+                self.readed += 1
+
+                if self.readed >= len(self.specgrams):
+                    break
+                
+                # put latest specgram to queue
+                # q.put(self.specgram[self.readed])
+                # q.put(elapsed)
+                q.put(self.readed)
+
+
+def player_main(filename, q):
+    p = Player(filename, q)
+    p.play(q)
