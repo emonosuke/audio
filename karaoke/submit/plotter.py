@@ -21,7 +21,13 @@ RECORDER_N_FRAMES = 20
 
 RECORDER_MAX_FREQ = 500
 
-PLAYER_N_FRAMES = 20
+PLAYER_N_FRAMES = 100
+
+RECORDER_PLOT_INTERVAL = 100 
+PLAYER_PLOT_INTERVAL = 20
+
+PLAYER_VMIN = -10.0
+PLAYER_VMAX = 10.0
 
 
 def callback(indata, outdata, frames, time, status):
@@ -50,7 +56,7 @@ def update_plot(frame):
             framedata[:shift] = data.flatten()
             framedata = np.roll(framedata, -shift, axis=0)
 
-    # framedata に対して基本周波数を推定する
+    # Estimate fundamental frequency of framedata 
     freq = min(get_frequency(framedata, RECORDER_SAMPLERATE), RECORDER_MAX_FREQ)
 
     # print(freq)
@@ -61,8 +67,6 @@ def update_plot(frame):
     lines[0].set_ydata(plotdata)
 
     # print('Elapsed: ', time.time() - start)
-    
-    # what is returned here?
     return lines
 
 
@@ -77,7 +81,7 @@ def update_player_plot(frame):
             # expect empty queue
             break
     
-    # This reqires PLAYRE_FRAME_SHIFT > update_player_plot interval
+    # This reqires PLAYER_FRAME_SHIFT > PLAYER_PLOT_INTERVAL
     player_plot[0] = latest_specgram
     player_plot = np.roll(player_plot, -1, axis=0)
 
@@ -112,14 +116,14 @@ if __name__ == '__main__':
     player_plot = np.zeros([PLAYER_N_FRAMES, PLAYER_LENFREQ])
     latest_specgram = np.zeros(PLAYER_LENFREQ)
     
-    extent = [0.0, 1.0, 0.0, PLAYER_LIM_FREQ]
+    extent = [-PLAYER_N_FRAMES * (PLAYER_PLOT_INTERVAL / 1000.0), 0, 0.0, PLAYER_LIM_FREQ]
 
-    im = ax2.imshow(np.transpose(player_plot), cmap='hot', origin='lower', aspect='auto', extent=extent, vmin=-10.0, vmax=10.0)
+    im = ax2.imshow(np.transpose(player_plot), cmap='hot', origin='lower', aspect='auto', extent=extent, vmin=PLAYER_VMIN, vmax=PLAYER_VMAX)
 
     # TODO: designate device
     stream = sd.Stream(channels=RECORDER_N_CHANNELS, samplerate=RECORDER_SAMPLERATE, callback=callback)
-    ani1 = FuncAnimation(fig1, update_plot, interval=100, blit=True)
-    ani2 = FuncAnimation(fig2, update_player_plot, interval=100, blit=True)
+    ani1 = FuncAnimation(fig1, update_plot, interval=RECORDER_PLOT_INTERVAL, blit=True)
+    ani2 = FuncAnimation(fig2, update_player_plot, interval=PLAYER_PLOT_INTERVAL, blit=True)
 
     player_queue = multiprocessing.Queue()
 
