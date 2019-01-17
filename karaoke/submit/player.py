@@ -51,8 +51,10 @@ class Player():
         self.specgrams = calc_specgrams(waveform, samplerate)
         
         # For colormap
-        self.specmax = np.max(self.specgrams)
-        self.specmin = np.min(self.specgrams)
+        specmax = np.max(self.specgrams)
+        specmin = np.min(self.specgrams)
+
+        # print(specmin, specmax)
 
         self.lenfreq = ((int(self.samplerate * PLAYER_FRAME_DURATION) >> 1) + 1)
         self.plotdata = np.zeros((PLAYER_N_PLOTS, self.lenfreq))

@@ -114,8 +114,9 @@ if __name__ == '__main__':
     
     extent = [0.0, 1.0, 0.0, PLAYER_SAMPLERATE / 2]
 
-    im = ax2.imshow(np.transpose(player_plot), cmap='hot', origin='lower', aspect='auto', extent=extent, vmin=-12.0, vmax=6.0)
+    im = ax2.imshow(np.transpose(player_plot), cmap='hot', origin='lower', aspect='auto', extent=extent, vmin=-10.0, vmax=10.0)
 
+    # TODO: designate device
     stream = sd.Stream(channels=RECORDER_N_CHANNELS, samplerate=RECORDER_SAMPLERATE, callback=callback)
     ani1 = FuncAnimation(fig1, update_plot, interval=100, blit=True)
     ani2 = FuncAnimation(fig2, update_player_plot, interval=100, blit=True)
