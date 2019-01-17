@@ -15,6 +15,10 @@ PLAYER_FRAME_SHIFT = 0.1
 PLAYER_N_PLOTS = 20
 PLAYER_UPDATE_INTERVAL = 0.05
 
+# FIX
+PLAYER_SAMPLERATE = 16000
+PLAYER_LENFREQ = ((int(PLAYER_SAMPLERATE * PLAYER_FRAME_DURATION) >> 1) + 1)
+
 
 def calc_specgrams(waveform, samplerate):
     specgrams = []
@@ -82,9 +86,9 @@ class Player():
                     break
                 
                 # put latest specgram to queue
-                # q.put(self.specgram[self.readed])
+                q.put(self.specgrams[self.readed])
                 # q.put(elapsed)
-                q.put(self.readed)
+                # q.put(self.readed)
 
 
 def player_main(filename, q):
