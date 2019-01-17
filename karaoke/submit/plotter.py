@@ -10,7 +10,7 @@ from player import Player
 import argparse
 import multiprocessing
 from player import player_main
-from player import PLAYER_SAMPLERATE, PLAYER_LENFREQ
+from player import PLAYER_SAMPLERATE, PLAYER_LENFREQ, PLAYER_LIM_FREQ
 
 RECORDER_SAMPLERATE = 16000
 RECORDER_N_CHANNELS = 1
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     player_plot = np.zeros([PLAYER_N_FRAMES, PLAYER_LENFREQ])
     latest_specgram = np.zeros(PLAYER_LENFREQ)
     
-    extent = [0.0, 1.0, 0.0, PLAYER_SAMPLERATE / 2]
+    extent = [0.0, 1.0, 0.0, PLAYER_LIM_FREQ]
 
     im = ax2.imshow(np.transpose(player_plot), cmap='hot', origin='lower', aspect='auto', extent=extent, vmin=-10.0, vmax=10.0)
 
