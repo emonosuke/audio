@@ -7,10 +7,9 @@ import sounddevice as sd
 import queue
 
 
-def audio_callback(indata, outdata, frames, time, status):
+def audio_callback(indata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
-    outdata[:] = indata
 
     global q
 
@@ -54,7 +53,7 @@ if __name__ == '__main__':
     lines = ax.plot(plotdata)          # グラフのリアルタイム更新の最初はプロットから
     ax.axis((0, len(plotdata), -1, 1))
 
-    stream = sd.Stream(channels=channels, samplerate=samplerate, callback=audio_callback)
+    stream = sd.InputStream(channels=channels, samplerate=samplerate, callback=audio_callback)
     ani = FuncAnimation(fig, update_plot, interval=interval, blit=True)
     with stream:
         plt.show()

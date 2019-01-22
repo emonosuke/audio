@@ -24,16 +24,15 @@ RECORDER_MAX_FREQ = 500
 PLAYER_N_FRAMES = 100
 
 RECORDER_PLOT_INTERVAL = 100 
-PLAYER_PLOT_INTERVAL = 20
+PLAYER_PLOT_INTERVAL = 30
 
-PLAYER_VMIN = -10.0
+PLAYER_VMIN = -7.0
 PLAYER_VMAX = 10.0
 
 
-def callback(indata, outdata, frames, time, status):
+def callback(indata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
-    outdata[:] = indata
 
     q.put(indata)
 
@@ -55,6 +54,8 @@ def update_plot(frame):
         else:
             framedata[:shift] = data.flatten()
             framedata = np.roll(framedata, -shift, axis=0)
+    
+    # TODO: Get loudness of framedata and if loudness isn't enough don't show freqency
 
     # Estimate fundamental frequency of framedata 
     freq = min(get_frequency(framedata, RECORDER_SAMPLERATE), RECORDER_MAX_FREQ)
@@ -102,14 +103,20 @@ if __name__ == '__main__':
     framedata = np.zeros(RECORDER_FRAME_SIZE)
     plotdata = np.zeros(RECORDER_N_FRAMES)
 
+    # TODO: Add Title
     fig1, ax1 = plt.subplots()
+    # ax1.set_title("Player spectrogram")
 
     fig2, ax2 = plt.subplots()
+    # ax2.set_title("Recorder frequency")
     
     # Initalization of Player Plot
     # TODO: 補助線入れたい
     lines = ax1.plot(plotdata)
-    ax1.axis((0, RECORDER_N_FRAMES, 0, RECORDER_MAX_FREQ / 2))
+
+    # TODO: (-INTERVAL * N_FRAMES, 0) に直したい
+    ax1.axis((0, 20, 0, RECORDER_MAX_FREQ))
+    ax1.grid(which="major", axis="y", color="gray", alpha=0.7, linestyle="-", linewidth=0.5)
 
     # Initialization of Recorder Plot
     # 0 -> vmin
@@ -121,7 +128,7 @@ if __name__ == '__main__':
     im = ax2.imshow(np.transpose(player_plot), cmap='hot', origin='lower', aspect='auto', extent=extent, vmin=PLAYER_VMIN, vmax=PLAYER_VMAX)
 
     # TODO: designate device
-    stream = sd.Stream(channels=RECORDER_N_CHANNELS, samplerate=RECORDER_SAMPLERATE, callback=callback)
+    stream = sd.InputStream(channels=RECORDER_N_CHANNELS, samplerate=RECORDER_SAMPLERATE, callback=callback)
     ani1 = FuncAnimation(fig1, update_plot, interval=RECORDER_PLOT_INTERVAL, blit=True)
     ani2 = FuncAnimation(fig2, update_player_plot, interval=PLAYER_PLOT_INTERVAL, blit=True)
 
