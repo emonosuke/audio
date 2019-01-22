@@ -21,6 +21,7 @@ PLAYER_NYQUIST = PLAYER_SAMPLERATE // 2
 PLAYER_LIM_FREQ = 1000
 PLAYER_LENFREQ = ((int(PLAYER_SAMPLERATE * PLAYER_FRAME_DURATION) >> 1) + 1) // (PLAYER_NYQUIST // PLAYER_LIM_FREQ)
 
+
 def calc_specgrams(waveform, samplerate):
     specgrams = []
 

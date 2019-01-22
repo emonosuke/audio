@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sounddevice as sd
 import queue
-from helpers import get_frequency
+from helpers import get_frequency, get_loudness
 import time
 from player import Player
 import argparse
 import multiprocessing
+import math
 from player import player_main
 from player import PLAYER_SAMPLERATE, PLAYER_LENFREQ, PLAYER_LIM_FREQ
 
@@ -24,10 +25,12 @@ RECORDER_MAX_FREQ = 500
 PLAYER_N_FRAMES = 100
 
 RECORDER_PLOT_INTERVAL = 100 
-PLAYER_PLOT_INTERVAL = 30
+PLAYER_PLOT_INTERVAL = 20
 
-PLAYER_VMIN = -7.0
-PLAYER_VMAX = 10.0
+PLAYER_VMIN = -2.5
+PLAYER_VMAX = 5.0
+
+RECORDER_THRESHOLD = 200
 
 
 def callback(indata, frames, time, status):
@@ -55,14 +58,19 @@ def update_plot(frame):
             framedata[:shift] = data.flatten()
             framedata = np.roll(framedata, -shift, axis=0)
     
-    # TODO: Get loudness of framedata and if loudness isn't enough don't show freqency
+    # Get loudness of framedata(and if loudness isn't enough don't show freqency)
+    ld = get_loudness(framedata)
 
     # Estimate fundamental frequency of framedata 
     freq = min(get_frequency(framedata, RECORDER_SAMPLERATE), RECORDER_MAX_FREQ)
 
     # print(freq)
-
-    plotdata[0] = freq
+    
+    if ld < RECORDER_THRESHOLD:
+        plotdata[0] = math.nan
+    else:
+        plotdata[0] = freq
+    
     plotdata = np.roll(plotdata, -1, axis=0)
 
     lines[0].set_ydata(plotdata)
@@ -84,6 +92,9 @@ def update_player_plot(frame):
     
     # This reqires PLAYER_FRAME_SHIFT > PLAYER_PLOT_INTERVAL
     player_plot[0] = latest_specgram
+
+    print(latest_specgram)
+
     player_plot = np.roll(player_plot, -1, axis=0)
 
     im.set_array(np.transpose(player_plot))
@@ -103,23 +114,19 @@ if __name__ == '__main__':
     framedata = np.zeros(RECORDER_FRAME_SIZE)
     plotdata = np.zeros(RECORDER_N_FRAMES)
 
-    # TODO: Add Title
     fig1, ax1 = plt.subplots()
-    # ax1.set_title("Player spectrogram")
+    ax1.set_title("Frequency")
 
     fig2, ax2 = plt.subplots()
-    # ax2.set_title("Recorder frequency")
+    ax2.set_title("Spectrogram")
     
     # Initalization of Player Plot
-    # TODO: 補助線入れたい
     lines = ax1.plot(plotdata)
 
-    # TODO: (-INTERVAL * N_FRAMES, 0) に直したい
     ax1.axis((0, 20, 0, RECORDER_MAX_FREQ))
     ax1.grid(which="major", axis="y", color="gray", alpha=0.7, linestyle="-", linewidth=0.5)
 
     # Initialization of Recorder Plot
-    # 0 -> vmin
     player_plot = np.zeros([PLAYER_N_FRAMES, PLAYER_LENFREQ])
     latest_specgram = np.zeros(PLAYER_LENFREQ)
     
@@ -127,7 +134,6 @@ if __name__ == '__main__':
 
     im = ax2.imshow(np.transpose(player_plot), cmap='hot', origin='lower', aspect='auto', extent=extent, vmin=PLAYER_VMIN, vmax=PLAYER_VMAX)
 
-    # TODO: designate device
     stream = sd.InputStream(channels=RECORDER_N_CHANNELS, samplerate=RECORDER_SAMPLERATE, callback=callback)
     ani1 = FuncAnimation(fig1, update_plot, interval=RECORDER_PLOT_INTERVAL, blit=True)
     ani2 = FuncAnimation(fig2, update_player_plot, interval=PLAYER_PLOT_INTERVAL, blit=True)

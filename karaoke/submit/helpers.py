@@ -35,3 +35,10 @@ def get_frequency(wframe, samplerate):
         prev_corr = corr
     
     return ff
+
+
+def get_loudness(wframe):
+    """
+    For each frame, get RMS
+    """
+    return np.sum(np.sqrt(wframe ** 2))
