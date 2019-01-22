@@ -1,6 +1,8 @@
 import numpy as np
 import math
 
+EPS = 1e-6
+
 
 def autocorr(x, t):
     """
@@ -39,6 +41,8 @@ def get_frequency(wframe, samplerate):
 
 def get_loudness(wframe):
     """
-    For each frame, get RMS
+    For each frame, get volume
     """
-    return np.sum(np.sqrt(wframe ** 2))
+    rms = np.sqrt(np.sum(wframe ** 2) / len(wframe))
+    vol = 20 * math.log10(rms + EPS)
+    return vol

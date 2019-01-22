@@ -27,10 +27,12 @@ PLAYER_N_FRAMES = 100
 RECORDER_PLOT_INTERVAL = 100 
 PLAYER_PLOT_INTERVAL = 20
 
-PLAYER_VMIN = -2.5
-PLAYER_VMAX = 5.0
+PLAYER_VMIN = -3.0
+PLAYER_VMAX = 7.0
 
-RECORDER_THRESHOLD = 200
+RECORDER_MAX_VOL = 10
+RECORDER_MIN_VOL = -30
+RECORDER_THRESHOLD = -20
 
 
 def callback(indata, frames, time, status):
@@ -44,6 +46,7 @@ def update_plot(frame):
     start = time.time()
 
     global plotdata, framedata
+    global plotvol
     while True:
         try:
             data = q.get_nowait()
@@ -63,20 +66,23 @@ def update_plot(frame):
 
     # Estimate fundamental frequency of framedata 
     freq = min(get_frequency(framedata, RECORDER_SAMPLERATE), RECORDER_MAX_FREQ)
-
-    # print(freq)
     
+
     if ld < RECORDER_THRESHOLD:
         plotdata[0] = math.nan
     else:
         plotdata[0] = freq
     
+    plotvol[0] = max(min(ld, RECORDER_MAX_VOL), RECORDER_MIN_VOL)
+    
     plotdata = np.roll(plotdata, -1, axis=0)
+    plotvol = np.roll(plotvol, -1, axis=0)
 
-    lines[0].set_ydata(plotdata)
+    l1[0].set_ydata(plotdata)
+    l3[0].set_ydata(plotvol)
 
     # print('Elapsed: ', time.time() - start)
-    return lines
+    return (l1 + l3)
 
 
 def update_player_plot(frame):
@@ -92,8 +98,6 @@ def update_player_plot(frame):
     
     # This reqires PLAYER_FRAME_SHIFT > PLAYER_PLOT_INTERVAL
     player_plot[0] = latest_specgram
-
-    print(latest_specgram)
 
     player_plot = np.roll(player_plot, -1, axis=0)
 
@@ -113,18 +117,26 @@ if __name__ == '__main__':
 
     framedata = np.zeros(RECORDER_FRAME_SIZE)
     plotdata = np.zeros(RECORDER_N_FRAMES)
+    plotvol = np.zeros(RECORDER_N_FRAMES)
 
-    fig1, ax1 = plt.subplots()
+    fig1, (ax1, ax3) = plt.subplots(nrows=2, figsize=(6, 6))
+    plt.subplots_adjust(hspace=0.3)
+
     ax1.set_title("Frequency")
+    ax3.set_title("Volume")
 
     fig2, ax2 = plt.subplots()
     ax2.set_title("Spectrogram")
     
     # Initalization of Player Plot
-    lines = ax1.plot(plotdata)
+    l1 = ax1.plot(plotdata)
+    l3 = ax3.plot(plotvol)
 
-    ax1.axis((0, 20, 0, RECORDER_MAX_FREQ))
+    ax1.axis((0, RECORDER_N_FRAMES, 0, RECORDER_MAX_FREQ))
     ax1.grid(which="major", axis="y", color="gray", alpha=0.7, linestyle="-", linewidth=0.5)
+
+    ax3.axis((0, RECORDER_N_FRAMES, RECORDER_MIN_VOL, RECORDER_MAX_VOL))
+    ax3.grid(which="major", axis="y", color="gray", alpha=0.7, linestyle="-", linewidth=0.5)
 
     # Initialization of Recorder Plot
     player_plot = np.zeros([PLAYER_N_FRAMES, PLAYER_LENFREQ])
