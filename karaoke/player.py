@@ -6,10 +6,20 @@ import sounddevice as sd
 import soundfile as sf
 import subprocess
 from multiprocessing import Process
+from threading import Thread
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
-PLAYER_FRAME_DURATION = 0.1
-PLAYER_FRAME_SHIFT = 0.05
+PLAYER_FRAME_DURATION = 0.2
+PLAYER_FRAME_SHIFT = 0.1
 PLAYER_N_PLOTS = 20
+PLAYER_UPDATE_INTERVAL = 0.05
+
+PLAYER_SAMPLERATE = 16000  # samplerate is fixed value
+PLAYER_NYQUIST = PLAYER_SAMPLERATE // 2
+
+PLAYER_LIM_FREQ = 5000
+PLAYER_LENFREQ = ((int(PLAYER_SAMPLERATE * PLAYER_FRAME_DURATION) >> 1) + 1) // (PLAYER_NYQUIST // PLAYER_LIM_FREQ)
 
 
 def calc_specgrams(waveform, samplerate):
@@ -33,53 +43,55 @@ def calc_specgrams(waveform, samplerate):
 
 
 class Player():
-    def __init__(self, filename):
+    def __init__(self, filename, q):
         super(Player, self).__init__()
         
         waveform, samplerate = sf.read(sys.argv[1], dtype='float32')
-        self.filename = filename
-        self.waveform = waveform
-        self.samplerate = samplerate
-        self.specgrams = calc_specgrams(waveform, samplerate)
-        
-        # For colormap
-        self.specmax = np.max(self.specgrams)
-        self.specmin = np.min(self.specgrams)
 
-        self.lenfreq = ((int(self.samplerate * PLAYER_FRAME_DURATION) >> 1) + 1)
-        self.plotdata = np.zeros((PLAYER_N_PLOTS, self.lenfreq))
+        if samplerate != PLAYER_SAMPLERATE:
+            print("ERROR in player: input wav file's sampling rate must be equal to 16,000")
+            sys.exit(1)
+        
+        self.waveform = waveform
+
+        self.filename = filename
+        self.specgrams = calc_specgrams(waveform, samplerate)
+
         self.readed = 0
 
-    def play(self):
+        q.put(0)
+
+    def play(self, q):
+        self.specgrams = calc_specgrams(self.waveform, PLAYER_SAMPLERATE)
+        
+        # playback start
         self.started = time.time()
 
         def playback(filename):
+            # TODO: do not use dependency(sox)
             subprocess.call(['play', '-q', filename])
 
-        proc = Process(target=playback, args=(self.filename,))
-        proc.start()
-
-        # その後、一定時間ごとに plotdata 更新
-
-    
-    def update(self):
-        if self.readed >= len(self.specgrams):
-            return self.plotdata
+        pb = Process(target=playback, args=(self.filename,))
+        pb.start()
         
-        elapsed = time.time() - self.started
-        # print("elapsed: ", elapsed)
-        if elapsed >= (self.readed + 1) * PLAYER_FRAME_SHIFT:
-            self.readed += 1
-            self.plotdata[0] = self.specgrams[self.readed]
-            self.plotdata = np.roll(self.plotdata, -1, axis=0)
+        while 1:
+            time.sleep(PLAYER_UPDATE_INTERVAL)
 
-        return self.plotdata
+            # update freq
+            elapsed = time.time() - self.started
+
+            if elapsed >= (self.readed + 1) * PLAYER_FRAME_SHIFT:
+                self.readed += 1
+
+                if self.readed >= len(self.specgrams):
+                    break
+                
+                # put latest specgram to queue
+                q.put(self.specgrams[self.readed][:PLAYER_LENFREQ])
+                # q.put(elapsed)
+                # q.put(self.readed)
 
 
-if __name__ == '__main__':
-    filename = sys.argv[1]
-    p = Player(filename)
-    p.play()
-    print(p.specgrams)
-    # playback
-    time.sleep(5)
+def player_main(filename, q):
+    p = Player(filename, q)
+    p.play(q)

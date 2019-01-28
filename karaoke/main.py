@@ -1,26 +1,66 @@
-from player import Player
-from player import PLAYER_N_PLOTS, PLAYER_FRAME_SHIFT
-from recorder import Recorder
-from recorder import RECORDER_N_FRAMES, RECORDER_MAX_FREQ
-import matplotlib.pyplot as plt
+import sys
 from matplotlib.animation import FuncAnimation
+import matplotlib.pyplot as plt
 import numpy as np
+import sounddevice as sd
+import queue
+from helpers import get_frequency
+import time
+from player import Player
 import argparse
-import subprocess
+from threading import Thread
+
+RECORDER_SAMPLERATE = 16000
+RECORDER_N_CHANNELS = 1
+
+RECORDER_FRAME_DURATION = 0.1
+RECORDER_FRAME_SIZE = int(RECORDER_SAMPLERATE * RECORDER_FRAME_DURATION)
+RECORDER_N_FRAMES = 20
+
+RECORDER_MAX_FREQ = 500
 
 
-def update_player_plot(*args):
-    player_plot = p.update()
-    player_im.set_array(np.transpose(player_plot))
+def callback(indata, outdata, frames, time, status):
+    if status:
+        print(status, file=sys.stderr)
+    outdata[:] = indata
 
-    return player_im,
+    global q
+
+    q.put(indata)
 
 
-def update_recorder_plot(*args):
-    recorder_plot = r.update()
-    rec_lines[0].set_ydata(recorder_plot)
+def update_plot(frame):
+    start = time.time()
 
-    return rec_lines
+    global plotdata, framedata
+    while True:
+        try:
+            data = q.get_nowait()
+        except queue.Empty:
+            break
+
+        shift = len(data)
+
+        if len(data) >= RECORDER_FRAME_SIZE:
+            framedata = data[-RECORDERFRAME_SIZE:].flatten()
+        else:
+            framedata[:shift] = data.flatten()
+            framedata = np.roll(framedata, -shift, axis=0)
+
+    # framedata に対して基本周波数を推定する
+    freq = min(get_frequency(framedata, RECORDER_SAMPLERATE), RECORDER_MAX_FREQ)
+
+    # print(freq)
+
+    plotdata[0] = freq
+    plotdata = np.roll(plotdata, -1, axis=0)
+
+    lines[0].set_ydata(plotdata)
+
+    # print('Elapsed: ', time.time() - start)
+    
+    return lines
 
 
 if __name__ == '__main__':
@@ -29,33 +69,26 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    p = Player(filename=args.filename)
+    # Recorder
+    q = queue.Queue()
 
-    r = Recorder()
+    framedata = np.zeros(RECORDER_FRAME_SIZE)
+    plotdata = np.zeros(RECORDER_N_FRAMES)
 
-    player_plot = p.plotdata
-    recorder_plot = r.plotdata
-
-    # For player's plot
-    fig1, ax1 = plt.subplots()
-
-    # For recorder's plot
-    fig2, ax2 = plt.subplots()
-    
-    extent = [0.0, PLAYER_N_PLOTS * PLAYER_FRAME_SHIFT, 0.0, p.samplerate / 2]
-    player_im = ax1.imshow(np.transpose(player_plot), cmap='hot', origin='lower', aspect='auto', extent=extent, vmin=p.specmin, vmax=p.specmax)
+    fig, ax = plt.subplots()
 
     # TODO: 補助線入れたい
-    rec_lines = ax2.plot(recorder_plot)
-    ax2.axis((0, RECORDER_N_FRAMES, 0, RECORDER_MAX_FREQ))
+    lines = ax.plot(plotdata)
+    ax.axis((0, RECORDER_N_FRAMES, 0, RECORDER_MAX_FREQ / 2))
 
-    ani1 = FuncAnimation(fig1, update_player_plot, interval=100, blit=True)
-    ani2 = FuncAnimation(fig2, update_recorder_plot, interval=100, blit=True)
+    stream = sd.Stream(channels=RECORDER_N_CHANNELS, samplerate=RECORDER_SAMPLERATE, callback=callback)
+    ani = FuncAnimation(fig, update_plot, interval=100, blit=True)
 
-    r = Recorder()
+    pl = Player(filename=args.filename)
 
-    r.start()
+    th = Thread(target=pl)
+    th.daemon = True
+    th.start()
 
-    p.play()
-
-    plt.show()
+    with stream:
+        plt.show()
