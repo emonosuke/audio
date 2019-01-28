@@ -1,7 +1,10 @@
+"""
+This is the test module for player
+"""
+
 import multiprocessing
 import time
 import sys
-
 from player import player_main
 from queue import Queue
 

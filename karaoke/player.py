@@ -68,7 +68,7 @@ class Player():
         self.started = time.time()
 
         def playback(filename):
-            # TODO: do not use dependency(sox)
+            # This requires SoX
             subprocess.call(['play', '-q', filename])
 
         pb = Process(target=playback, args=(self.filename,))
@@ -77,7 +77,6 @@ class Player():
         while 1:
             time.sleep(PLAYER_UPDATE_INTERVAL)
 
-            # update freq
             elapsed = time.time() - self.started
 
             if elapsed >= (self.readed + 1) * PLAYER_FRAME_SHIFT:
@@ -88,8 +87,6 @@ class Player():
                 
                 # put latest specgram to queue
                 q.put(self.specgrams[self.readed][:PLAYER_LENFREQ])
-                # q.put(elapsed)
-                # q.put(self.readed)
 
 
 def player_main(filename, q):
