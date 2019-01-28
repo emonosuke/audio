@@ -27,10 +27,12 @@ PLAYER_N_FRAMES = 100
 RECORDER_PLOT_INTERVAL = 100 
 PLAYER_PLOT_INTERVAL = 20
 
+# TODO: 引数から指定
 PLAYER_VMIN = -3.0
 PLAYER_VMAX = 7.0
 
-RECORDER_MAX_VOL = 10
+# TODO: 引数から指定
+RECORDER_MAX_VOL = 30
 RECORDER_MIN_VOL = -30
 RECORDER_THRESHOLD = -20
 
@@ -119,6 +121,7 @@ if __name__ == '__main__':
     plotdata = np.zeros(RECORDER_N_FRAMES)
     plotvol = np.zeros(RECORDER_N_FRAMES)
 
+    # TODO: x軸は時間としたい
     fig1, (ax1, ax3) = plt.subplots(nrows=2, figsize=(6, 6))
     plt.subplots_adjust(hspace=0.3)
 

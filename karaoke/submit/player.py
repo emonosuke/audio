@@ -56,12 +56,6 @@ class Player():
 
         self.filename = filename
         self.specgrams = calc_specgrams(waveform, samplerate)
-        
-        # For colormap
-        # specmax = np.max(self.specgrams)
-        # specmin = np.min(self.specgrams)
-
-        # print(specmin, specmax)
 
         self.readed = 0
 
