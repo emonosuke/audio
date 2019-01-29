@@ -9,7 +9,6 @@ import sounddevice as sd
 import queue
 from helpers import get_frequency, get_loudness
 import time
-from player import Player
 import argparse
 import multiprocessing
 import math
@@ -41,7 +40,7 @@ def callback(indata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
 
-    q.put(indata)
+    recorder_queue.put(indata)
 
 
 def update_plot(frame):
@@ -52,7 +51,7 @@ def update_plot(frame):
     global plotvol
     while True:
         try:
-            data = q.get_nowait()
+            data = recorder_queue.get_nowait()
         except queue.Empty:
             break
 
@@ -116,14 +115,16 @@ if __name__ == '__main__':
     parser.add_argument('filename', help='wav file to play')
 
     # Optional Arguments
-    parser.add_argument('vmin', nargs='?', default=-10.0, help='colormap minimum value of spectrogram')
-    parser.add_argument('vmax', nargs='?', default=10.0, help='colormap maximum value of spectrogram')
-    parser.add_argument('thresold', nargs='?', default=-20.0, help='thresold to plot frequency')
+    parser.add_argument('vmin', nargs='?', type=float, default=-10.0, 
+                        help='colormap minimum value of spectrogram')
+    parser.add_argument('vmax', nargs='?', type=float, default=10.0, 
+                        help='colormap maximum value of spectrogram')
+    parser.add_argument('thresold', nargs='?', type=float, default=-20.0, 
+                        help='thresold to plot frequency')
 
     args = parser.parse_args()
 
-    # Recorder
-    q = queue.Queue()
+    recorder_queue = queue.Queue()
 
     framedata = np.zeros(RECORDER_FRAME_SIZE)
     plotdata = np.zeros(RECORDER_N_FRAMES)

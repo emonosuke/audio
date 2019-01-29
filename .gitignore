@@ -1,8 +1,5 @@
 material/
 reports/
 .DS_Store
-datas/
-lib/
 __pycache__/
-java/
 exercise/

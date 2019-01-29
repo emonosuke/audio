@@ -6,7 +6,6 @@ import sounddevice as sd
 import soundfile as sf
 import subprocess
 from multiprocessing import Process
-from threading import Thread
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
